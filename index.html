@@ -1,226 +1,346 @@
-<!DOCTYPE html>
+<html>
 <head>
-<meta charset="utf-8">
-<script src="https://d3js.org/d3.v5.min.js"></script>
-<style>
-
-body {
-	margin:auto;	
-	width: 885px;
-	font: 10px arial;
-	padding: 25px;
-}
-.y-axis line {
-	opacity:.2;
-}
-.y-axis path {
-	display:none;
-}
-.line {
-	fill: none;
-	stroke-width: 1.5px;
-	opacity:.75;
-}
-.overlay {
-	fill: none;
-	pointer-events: all;
-}
-.lineHoverText {
-	text-shadow:
-	-2px -2px 0 #fff,
-	2px -2px 0 #fff,
-	-2px 2px 0 #fff,
-	2px 2px 0 #fff;
-}
-.hoverCircle {
-	opacity: .75;
-}
-
-</style>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<style>
+		html {
+			font-family: 'Arial', sans-serif;
+			}
+		.header {
+			margin-top: 60px;
+			margin-left: 60px;
+			text-align: left;
+			}
+		input {
+			margin-right: 10px;
+			}
+		.form-check-label {
+			font-size: 0.8em;
+			margin-right: 20px;
+			}
+	</style>
 </head>
-
+  
 <body>
-
-<font style="font-size:11px;">Change metric:</font>
-<select id="selectbox">
-	<option value="_1">Fahrenheit</option>
-	<option value="_2">Celsius</option>
-</select>
-
-<svg id="chart" width="850" height="410"></svg>
-
-<script>
-
-d3.csv("https://lcyen2.github.io/data.csv").then(d => chart(d))
-
-function chart(data) {
-
-	var keys = data.columns.slice(1);
-
-	var parseTime = d3.timeParse("%Y%m%d"),
-		formatDate = d3.timeFormat("%Y-%m-%d"),
-		bisectDate = d3.bisector(d => d.date).left,
-		formatValue = d3.format(",.0f");
-
-	data.forEach(function(d) {
-		d.date = parseTime(d.date);
-		return d;
-	})
-
-	var svg = d3.select("#chart"),
-		margin = {top: 15, right: 35, bottom: 15, left: 35},
-		width = +svg.attr("width") - margin.left - margin.right,
-		height = +svg.attr("height") - margin.top - margin.bottom;
-
-	var x = d3.scaleTime()
-		.rangeRound([margin.left, width - margin.right])
-		.domain(d3.extent(data, d => d.date))
-
-	var y = d3.scaleLinear()
-		.rangeRound([height - margin.bottom, margin.top]);
-
-	var z = d3.scaleOrdinal(d3.schemeCategory10);
-
-	var line = d3.line()
-		.curve(d3.curveCardinal)
-		.x(d => x(d.date))
-		.y(d => y(d.degrees));
-
-	svg.append("g")
-		.attr("class","x-axis")
-		.attr("transform", "translate(0," + (height - margin.bottom) + ")")
-		.call(d3.axisBottom(x).tickFormat(d3.timeFormat("%b")));
-
-	svg.append("g")
-		.attr("class", "y-axis")
-		.attr("transform", "translate(" + margin.left + ",0)");
-
-	var focus = svg.append("g")
-		.attr("class", "focus")
-		.style("display", "none");
-
-	focus.append("line").attr("class", "lineHover")
-		.style("stroke", "#999")
-		.attr("stroke-width", 1)
-		.style("shape-rendering", "crispEdges")
-		.style("opacity", 0.5)
-		.attr("y1", -height)
-		.attr("y2",0);
-
-	focus.append("text").attr("class", "lineHoverDate")
-		.attr("text-anchor", "middle")
-		.attr("font-size", 12);
-
-	var overlay = svg.append("rect")
-		.attr("class", "overlay")
-		.attr("x", margin.left)
-		.attr("width", width - margin.right - margin.left)
-		.attr("height", height)
-
-	update(d3.select('#selectbox').property('value'), 0);
-
-	function update(input, speed) {
-
-		var copy = keys.filter(f => f.includes(input))
-
-		var cities = copy.map(function(id) {
-			return {
-				id: id,
-				values: data.map(d => {return {date: d.date, degrees: +d[id]}})
-			};
-		});
-
-		y.domain([
-			d3.min(cities, d => d3.min(d.values, c => c.degrees)),
-			d3.max(cities, d => d3.max(d.values, c => c.degrees))
-		]).nice();
-
-		svg.selectAll(".y-axis").transition()
-			.duration(speed)
-			.call(d3.axisLeft(y).tickSize(-width + margin.right + margin.left))
-
-		var city = svg.selectAll(".cities")
-			.data(cities);
-
-		city.exit().remove();
-
-		city.enter().insert("g", ".focus").append("path")
-			.attr("class", "line cities")
-			.style("stroke", d => z(d.id))
-			.merge(city)
-		.transition().duration(speed)
-			.attr("d", d => line(d.values))
-
-		tooltip(copy);
-	}
-
-	function tooltip(copy) {
+	<div class ='container-fluid'>
+		<div class='row'>
+			<div id="chart">
+				<div class='header'>
+					<h3>Telecom Indices among G8 Countries during 4G Era (2008-2017)</h3>
+					<p>Narrative Visualization with Drill Down Story</p>
+					<div class="form-check-inline">
+						<label class="form-check-label">
+							<input style="display: inline" type="radio" name="kpi" value="1" checked>Internet Penetration
+						</label>
+					</div>
+					<div class="form-check-inline">
+						<label class="form-check-label">
+							<input type="radio" name="kpi" value="2">Fixed Broadband Subscription
+						</label>
+					</div>
+					<div class="form-check-inline">
+						<label class="form-check-label">
+							<input type="radio" name="kpi" value="3">Mobile Broadband Subscription
+						</label>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 		
-		var labels = focus.selectAll(".lineHoverText")
-			.data(copy)
+	<script>
+    var margin = {top: 80, right: 200, bottom: 40, left: 80}
+    var width = 1200 - margin.left - margin.right
+    var height = 500 - margin.top - margin.bottom
 
-		labels.enter().append("text")
-			.attr("class", "lineHoverText")
-			.style("fill", d => z(d))
-			.attr("text-anchor", "start")
-			.attr("font-size",12)
-			.attr("dy", (_, i) => 1 + i * 2 + "em")
-			.merge(labels);
+    var mouseG, tooltip
 
-		var circles = focus.selectAll(".hoverCircle")
-			.data(copy)
+    var parseDate = d3.timeParse("%Y-%m")
+   
+	var glines
+    var lineOpacity = 1
+    var lineStroke = "2px"
 
-		circles.enter().append("circle")
-			.attr("class", "hoverCircle")
-			.style("fill", d => z(d))
-			.attr("r", 2.5)
-			.merge(circles);
+    //var axisPad = 6 // axis formatting
+    //var R = 6 // legend marker
 
-		svg.selectAll(".overlay")
-			.on("mouseover", function() { focus.style("display", null); })
-			.on("mouseout", function() { focus.style("display", "none"); })
-			.on("mousemove", mousemove);
+    var code = ["Canada (CAN)",
+				"European Union (EUU)",
+				"France (FRA)",
+				"Germany (DEU)",
+				"Italy (ITA)",
+				"Japan (JPN)",
+				"United Kingdom (GBR)",
+				"United States (USA)"]
+    var color = d3.scaleOrdinal()
+        .domain(code)
+        .range(["#006400", "#000080", "#B03060", "#FF0000", "#FFD700", "#00FF00", "#00BFFF", "#FF00FF"])
 
-		function mousemove() {
+	var bgcolor = "#A9A9A9"
+		
+    d3.csv("https://lcyen2.github.io/WDIDataG8.csv", data => {
 
-			var x0 = x.invert(d3.mouse(this)[0]),
-				i = bisectDate(data, x0, 1),
-				d0 = data[i - 1],
-				d1 = data[i],
-				d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+        var res = data.map((d,i) => {
+			return {
+				date: parseDate(d.month),
+				kpi: +d.kpi,
+				country: d.country,
+				wdi: +d.wdi
+				}
+			})
 
-			focus.select(".lineHover")
-				.attr("transform", "translate(" + x(d.date) + "," + height + ")");
+        var xScale = d3.scaleTime().domain(d3.extent(res, d=>d.date)).range([0, width])
+		var yScale = d3.scaleLinear().domain([0, d3.max(res, d=>d.wdi)]).range([height, 0]);
 
-			focus.select(".lineHoverDate")
-				.attr("transform", 
-					"translate(" + x(d.date) + "," + (height + margin.bottom) + ")")
-				.text(formatDate(d.date));
+        var svg = d3.select("#chart")
+			.append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+			.append('g')
+				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-			focus.selectAll(".hoverCircle")
-				.attr("cy", e => y(d[e]))
-				.attr("cx", x(d.date));
+        // CREATE AXES // 
+        //var xAxis = d3.axisBottom(xScale).ticks(d3.timeYear.every(1)).tickSizeOuter(axisPad).tickSizeInner(axisPad)
+        var xAxis = d3.axisBottom(xScale).ticks(d3.timeYear)
+        var yAxis = d3.axisLeft(yScale).ticks(10, "s").tickSize(-width) // horizontal ticks across svg width
 
-			focus.selectAll(".lineHoverText")
-				.attr("transform", 
-					"translate(" + (x(d.date)) + "," + height / 2.5 + ")")
-				.text(e => e + " " + "º" + formatValue(d[e]));
+        svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", `translate(0, ${height})`)
+			.call(xAxis)
+			.call(g => {
+				//var years = xScale.ticks(d3.timeYear.every(1))
+				//var xshift = (width/years.length)/2 
+				//var xshift = (width/d3.timeYear)
+				g.selectAll("text")
+					//.style("text-anchor", "middle")
+					//.attr("transform", `translate(${xshift}, 0)`) // shift tick labels to middle of interval
+					//.attr("y", axisPad)
+					.attr('fill', bgcolor)
+				g.selectAll("line")
+					.attr('stroke', bgcolor)
+				g.select(".domain")
+					.attr('stroke', bgcolor)
+				})
+				
+        svg.append("g")
+			.attr("class", "y axis")
+			.call(yAxis)
+			.call(g => {
+				g.selectAll("text")
+					.style("text-anchor", "middle")
+					.attr("x", -20)
+					.attr('fill', bgcolor)
+				g.selectAll("line")
+					.attr('stroke', bgcolor)
+					.attr('stroke-dasharray', '2,2')
+					.attr('stroke-width', 0.7) // make horizontal tick thinner and lighter so that line paths can stand out
+					.attr('opacity', 0.3)
+				g.select(".domain").remove()
+				})
+			.append("text") // Y-axis legend
+				.attr("x", 40)
+				.attr("y", -20)
+				.attr("fill", bgcolor)
+				.text("Percentage (%)")
 
-			x(d.date) > (width - width / 4) 
-				? focus.selectAll("text.lineHoverText")
-					.attr("text-anchor", "end")
-					.attr("dx", -10)
-				: focus.selectAll("text.lineHoverText")
-					.attr("text-anchor", "start")
-					.attr("dx", 10)
-		}
-	}
+        // CREATE LEGEND // 
+        var svgLegend = svg.append('g')
+            .attr('class', 'gLegend')
+            .attr("transform", "translate(" + (width + 40) + "," + 0 + ")")
 
-	var selectbox = d3.select("#selectbox")
-		.on("change", function() {
-			update(this.value, 750);
-		})
-}
+        var legend = svgLegend
+			.selectAll('.legend').data(code).enter().append('g')
+			.attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")" })
 
-</script>
+        legend.append("circle")
+            .attr("class", "legend-node")
+            .attr("cx", 0)
+            .attr("cy", 0)
+            .attr("r", 6)
+            .style("fill", d=>color(d))
+
+        legend.append("text")
+            .attr("class", "legend-text")
+            .attr("x", 12)
+            .attr("y", 5)
+            .style("fill", bgcolor)
+            .style("font-size", 14)
+            .text(d=>d)
+
+        // line generator 
+        var line = d3.line()
+			.x(d => xScale(d.date))
+			.y(d => yScale(d.wdi))
+
+        renderChart(1) // inital chart render (set default to Bidding Exercise 1 data)
+
+        // Update chart when radio button is selected
+        d3.selectAll(("input[name='kpi']")).on('change', function(){updateChart(this.value)})
+
+        function updateChart(kpi) {
+
+			var resNew = res.filter(d=>d.kpi == parseInt(kpi))
+
+			var res_nested = d3.nest()
+				.key(d=>d.country)
+				.entries(resNew)
+
+			glines.select('.line') //select line path within line-group (which represents a vehicle category), then bind new data 
+				.data(res_nested)
+				.transition().duration(750)
+				.attr('d', function(d) {
+				return line(d.values)
+				})
+
+			mouseG.selectAll('.mouse-per-line')
+				.data(res_nested)
+
+			mouseG.on('mousemove', function () { 
+				var mouse = d3.mouse(this)
+				updateTooltipContent(mouse, res_nested)
+				})
+			}
+
+        function renderChart(kpi) {
+
+			var resNew = res.filter(d=>d.kpi == parseInt(kpi))
+
+			var res_nested = d3.nest() // necessary to nest data so that keys represent each vehicle category
+				.key(d=>d.country)
+				.entries(resNew)
+
+			// APPEND MULTIPLE LINES //
+			var lines = svg.append('g')
+				.attr('class', 'lines')
+
+			glines = lines.selectAll('.line-group')
+				.data(res_nested).enter()
+				.append('g')
+				.attr('class', 'line-group')
+
+			glines.append('path')
+				.attr('class', 'line')  
+				.attr('d', d => line(d.values))
+				.style('stroke', (d, i) => color(i))
+				.style('fill', 'none')
+				.style('opacity', lineOpacity)
+				.style('stroke-width', lineStroke)
+
+			// CREATE HOVER TOOLTIP WITH VERTICAL LINE //
+			tooltip = d3.select("#chart").append("div")
+				.attr('id', 'tooltip')
+				.style('position', 'absolute')
+				.style("background-color", "#F3F3F3")
+				.style('padding', 6)
+				.style('display', 'none')
+
+			mouseG = svg.append("g")
+				.attr("class", "mouse-over-effects");
+
+			mouseG.append("path") // create vertical line to follow mouse
+				.attr("class", "mouse-line")
+				.style("stroke", bgcolor)
+				.style("stroke-width", lineStroke)
+				.style("opacity", "0");
+
+			var lines = document.getElementsByClassName('line');
+
+			var mousePerLine = mouseG.selectAll('.mouse-per-line')
+				.data(res_nested)
+				.enter()
+				.append("g")
+				.attr("class", "mouse-per-line");
+
+			mousePerLine.append("circle")
+				.attr("r", 4)
+				.style("stroke", function (d) {return color(d.key)})
+				.style("fill", "none")
+				.style("stroke-width", lineStroke)
+				.style("opacity", "0");
+
+			mouseG.append('svg:rect') // append a rect to catch mouse movements on canvas
+				.attr('width', width) 
+				.attr('height', height)
+				.attr('fill', 'none')
+				.attr('pointer-events', 'all')
+				.on('mouseout', function () { // on mouse out hide line, circles and text
+					d3.select(".mouse-line").style("opacity", "0");
+					d3.selectAll(".mouse-per-line circle").style("opacity", "0");
+					d3.selectAll(".mouse-per-line text").style("opacity", "0");
+					d3.selectAll("#tooltip").style('display', 'none')
+					})
+				.on('mouseover', function () { // on mouse in show line, circles and text
+					d3.select(".mouse-line").style("opacity", "1");
+					d3.selectAll(".mouse-per-line circle").style("opacity", "1");
+					d3.selectAll("#tooltip").style('display', 'block')
+					})
+				.on('mousemove', function () { // update tooltip content, line, circles and text when mouse moves
+					var mouse = d3.mouse(this)
+					d3.selectAll(".mouse-per-line")
+						.attr("transform", function (d, i) {
+							var xDate = xScale.invert(mouse[0]) // use 'invert' to get date corresponding to distance from mouse position relative to svg
+							var bisect = d3.bisector(function (d) { return d.date; }).left // retrieve row index of date on parsed csv
+							var idx = bisect(d.values, xDate);
+						d3.select(".mouse-line")
+							.attr("d", function () {
+								var data = "M" + xScale(d.values[idx].date) + "," + (height);
+									data += " " + xScale(d.values[idx].date) + "," + 0;
+								return data;
+								});
+						return "translate(" + xScale(d.values[idx].date) + "," + yScale(d.values[idx].wdi) + ")";
+						});
+					updateTooltipContent(mouse, res_nested)
+					})
+			}
+
+		function updateTooltipContent(mouse, res_nested) {
+
+			sortingObj = []
+			res_nested.map(d => {
+				var xDate = xScale.invert(mouse[0])
+				var bisect = d3.bisector(function(d) { return d.date; }).left
+				var idx = bisect(d.values, xDate)
+				sortingObj.push({key: d.values[idx].country,
+								wdi: d.values[idx].wdi,
+								kpi: d.values[idx].kpi, 
+								year: d.values[idx].date.getFullYear(), 
+								//month: monthNames[d.values[idx].date.getMonth()]
+								})
+				})
+
+			sortingObj.sort(function(x, y) {return d3.descending(x.wdi, y.wdi);})
+
+			var sortingArr = sortingObj.map(d=> d.key)
+
+			var res_nested1 = res_nested.slice().sort(function(a, b){
+				return sortingArr.indexOf(a.key) - sortingArr.indexOf(b.key) // rank vehicle category based on price of wdi
+				})
+			
+			tooltip.html("Year " + sortingObj[0].year)
+				.style('display', 'block')
+				.style('left', d3.event.pageX + 20)
+				.style('top', d3.event.pageY - 20)
+				.style('font-size', 14)
+				.selectAll()
+				.data(res_nested1).enter() // for each vehicle category, list out name and price of wdi
+				.append('div')
+				.style('color', d => {return color(d.key)})
+				.style('font-size', 12)
+				.html(d => {
+					var xDate = xScale.invert(mouse[0])
+					var bisect = d3.bisector(function(d) { return d.date; }).left
+					var idx = bisect(d.values, xDate)
+					//return d.key.substring(0, 3) + " " + d.key.slice(-1) + ": $" + d.values[idx].wdi.toString()
+					return d.key + ": " + d.values[idx].wdi.toString() + " %"
+					})
+			}
+    })
+
+    </script>
 </body>
+</html>
