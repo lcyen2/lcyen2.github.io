@@ -1,133 +1,226 @@
 <!DOCTYPE html>
+<head>
 <meta charset="utf-8">
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<style>
 
-<style type="text/css">
-/* 13. Basic Styling with CSS */
-
-/* Style the lines by removing the fill and applying a stroke */
+body {
+	margin:auto;	
+	width: 885px;
+	font: 10px arial;
+	padding: 25px;
+}
+.y-axis line {
+	opacity:.2;
+}
+.y-axis path {
+	display:none;
+}
 .line {
-    fill: none;
-    stroke: #ffab00;
-    stroke-width: 3;
+	fill: none;
+	stroke-width: 1.5px;
+	opacity:.75;
 }
-  
 .overlay {
-  fill: none;
-  pointer-events: all;
+	fill: none;
+	pointer-events: all;
 }
-
-/* Style the dots by assigning a fill and stroke */
-.dot {
-    fill: #ffab00;
-    stroke: #fff;
+.lineHoverText {
+	text-shadow:
+	-2px -2px 0 #fff,
+	2px -2px 0 #fff,
+	-2px 2px 0 #fff,
+	2px 2px 0 #fff;
 }
-  
-  .focus circle {
-  fill: none;
-  stroke: steelblue;
+.hoverCircle {
+	opacity: .75;
 }
 
 </style>
-<!-- Body tag is where we will append our SVG and SVG objects-->
-<body>
-</body>
+</head>
 
-<!-- Load in the d3 library -->
-<script src="https://d3js.org/d3.v5.min.js"></script>
+<body>
+
+<font style="font-size:11px;">Change metric:</font>
+<select id="selectbox">
+	<option value="_1">Fahrenheit</option>
+	<option value="_2">Celsius</option>
+</select>
+
+<svg id="chart" width="850" height="410"></svg>
+
 <script>
 
-// 2. Use the margin convention practice 
-var margin = {top: 100, right: 100, bottom: 100, left: 100}
-  , width = window.innerWidth - margin.left - margin.right // Use the window's width 
-  , height = window.innerHeight - margin.top - margin.bottom; // Use the window's height
+d3.csv("data.csv").then(d => chart(d))
 
-// The number of datapoints
-var n = 21;
+function chart(data) {
 
-// 5. X scale will use the index of our data
-var xScale = d3.scaleLinear()
-    .domain([0, n-1]) // input
-    .range([0, width]); // output
+	var keys = data.columns.slice(1);
 
-// 6. Y scale will use the randomly generate number 
-var yScale = d3.scaleLinear()
-    .domain([0, 1]) // input 
-    .range([height, 0]); // output 
+	var parseTime = d3.timeParse("%Y%m%d"),
+		formatDate = d3.timeFormat("%Y-%m-%d"),
+		bisectDate = d3.bisector(d => d.date).left,
+		formatValue = d3.format(",.0f");
 
-// 7. d3's line generator
-var line = d3.line()
-    .x(function(d, i) { return xScale(i); }) // set the x values for the line generator
-    .y(function(d) { return yScale(d.y); }) // set the y values for the line generator 
-    .curve(d3.curveMonotoneX) // apply smoothing to the line
+	data.forEach(function(d) {
+		d.date = parseTime(d.date);
+		return d;
+	})
 
-// 8. An array of objects of length N. Each object has key -> value pair, the key being "y" and the value is a random number
-var dataset = d3.range(n).map(function(d) { return {"y": d3.randomUniform(1)() } })
+	var svg = d3.select("#chart"),
+		margin = {top: 15, right: 35, bottom: 15, left: 35},
+		width = +svg.attr("width") - margin.left - margin.right,
+		height = +svg.attr("height") - margin.top - margin.bottom;
 
-// 1. Add the SVG to the page and employ #2
-var svg = d3.select("body").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	var x = d3.scaleTime()
+		.rangeRound([margin.left, width - margin.right])
+		.domain(d3.extent(data, d => d.date))
 
-// 3. Call the x axis in a group tag
-svg.append("g")
-    .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(xScale)); // Create an axis component with d3.axisBottom
+	var y = d3.scaleLinear()
+		.rangeRound([height - margin.bottom, margin.top]);
 
-// 4. Call the y axis in a group tag
-svg.append("g")
-    .attr("class", "y axis")
-    .call(d3.axisLeft(yScale)); // Create an axis component with d3.axisLeft
+	var z = d3.scaleOrdinal(d3.schemeCategory10);
 
-// 9. Append the path, bind the data, and call the line generator 
-svg.append("path")
-    .datum(dataset) // 10. Binds data to the line 
-    .attr("class", "line") // Assign a class for styling 
-    .attr("d", line); // 11. Calls the line generator 
+	var line = d3.line()
+		.curve(d3.curveCardinal)
+		.x(d => x(d.date))
+		.y(d => y(d.degrees));
 
-// 12. Appends a circle for each datapoint 
-svg.selectAll(".dot")
-    .data(dataset)
-  .enter().append("circle") // Uses the enter().append() method
-    .attr("class", "dot") // Assign a class for styling
-    .attr("cx", function(d, i) { return xScale(i) })
-    .attr("cy", function(d) { return yScale(d.y) })
-    .attr("r", 5)
-      .on("mouseover", function(a, b, c) { 
-  			console.log(a) 
-        this.attr('class', 'focus')
+	svg.append("g")
+		.attr("class","x-axis")
+		.attr("transform", "translate(0," + (height - margin.bottom) + ")")
+		.call(d3.axisBottom(x).tickFormat(d3.timeFormat("%b")));
+
+	svg.append("g")
+		.attr("class", "y-axis")
+		.attr("transform", "translate(" + margin.left + ",0)");
+
+	var focus = svg.append("g")
+		.attr("class", "focus")
+		.style("display", "none");
+
+	focus.append("line").attr("class", "lineHover")
+		.style("stroke", "#999")
+		.attr("stroke-width", 1)
+		.style("shape-rendering", "crispEdges")
+		.style("opacity", 0.5)
+		.attr("y1", -height)
+		.attr("y2",0);
+
+	focus.append("text").attr("class", "lineHoverDate")
+		.attr("text-anchor", "middle")
+		.attr("font-size", 12);
+
+	var overlay = svg.append("rect")
+		.attr("class", "overlay")
+		.attr("x", margin.left)
+		.attr("width", width - margin.right - margin.left)
+		.attr("height", height)
+
+	update(d3.select('#selectbox').property('value'), 0);
+
+	function update(input, speed) {
+
+		var copy = keys.filter(f => f.includes(input))
+
+		var cities = copy.map(function(id) {
+			return {
+				id: id,
+				values: data.map(d => {return {date: d.date, degrees: +d[id]}})
+			};
+		});
+
+		y.domain([
+			d3.min(cities, d => d3.min(d.values, c => c.degrees)),
+			d3.max(cities, d => d3.max(d.values, c => c.degrees))
+		]).nice();
+
+		svg.selectAll(".y-axis").transition()
+			.duration(speed)
+			.call(d3.axisLeft(y).tickSize(-width + margin.right + margin.left))
+
+		var city = svg.selectAll(".cities")
+			.data(cities);
+
+		city.exit().remove();
+
+		city.enter().insert("g", ".focus").append("path")
+			.attr("class", "line cities")
+			.style("stroke", d => z(d.id))
+			.merge(city)
+		.transition().duration(speed)
+			.attr("d", d => line(d.values))
+
+		tooltip(copy);
+	}
+
+	function tooltip(copy) {
+		
+		var labels = focus.selectAll(".lineHoverText")
+			.data(copy)
+
+		labels.enter().append("text")
+			.attr("class", "lineHoverText")
+			.style("fill", d => z(d))
+			.attr("text-anchor", "start")
+			.attr("font-size",12)
+			.attr("dy", (_, i) => 1 + i * 2 + "em")
+			.merge(labels);
+
+		var circles = focus.selectAll(".hoverCircle")
+			.data(copy)
+
+		circles.enter().append("circle")
+			.attr("class", "hoverCircle")
+			.style("fill", d => z(d))
+			.attr("r", 2.5)
+			.merge(circles);
+
+		svg.selectAll(".overlay")
+			.on("mouseover", function() { focus.style("display", null); })
+			.on("mouseout", function() { focus.style("display", "none"); })
+			.on("mousemove", mousemove);
+
+		function mousemove() {
+
+			var x0 = x.invert(d3.mouse(this)[0]),
+				i = bisectDate(data, x0, 1),
+				d0 = data[i - 1],
+				d1 = data[i],
+				d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+
+			focus.select(".lineHover")
+				.attr("transform", "translate(" + x(d.date) + "," + height + ")");
+
+			focus.select(".lineHoverDate")
+				.attr("transform", 
+					"translate(" + x(d.date) + "," + (height + margin.bottom) + ")")
+				.text(formatDate(d.date));
+
+			focus.selectAll(".hoverCircle")
+				.attr("cy", e => y(d[e]))
+				.attr("cx", x(d.date));
+
+			focus.selectAll(".lineHoverText")
+				.attr("transform", 
+					"translate(" + (x(d.date)) + "," + height / 2.5 + ")")
+				.text(e => e + " " + "º" + formatValue(d[e]));
+
+			x(d.date) > (width - width / 4) 
+				? focus.selectAll("text.lineHoverText")
+					.attr("text-anchor", "end")
+					.attr("dx", -10)
+				: focus.selectAll("text.lineHoverText")
+					.attr("text-anchor", "start")
+					.attr("dx", 10)
+		}
+	}
+
+	var selectbox = d3.select("#selectbox")
+		.on("change", function() {
+			update(this.value, 750);
 		})
-      .on("mouseout", function() {  })
-//       .on("mousemove", mousemove);
+}
 
-//   var focus = svg.append("g")
-//       .attr("class", "focus")
-//       .style("display", "none");
-
-//   focus.append("circle")
-//       .attr("r", 4.5);
-
-//   focus.append("text")
-//       .attr("x", 9)
-//       .attr("dy", ".35em");
-
-//   svg.append("rect")
-//       .attr("class", "overlay")
-//       .attr("width", width)
-//       .attr("height", height)
-//       .on("mouseover", function() { focus.style("display", null); })
-//       .on("mouseout", function() { focus.style("display", "none"); })
-//       .on("mousemove", mousemove);
-  
-//   function mousemove() {
-//     var x0 = x.invert(d3.mouse(this)[0]),
-//         i = bisectDate(data, x0, 1),
-//         d0 = data[i - 1],
-//         d1 = data[i],
-//         d = x0 - d0.date > d1.date - x0 ? d1 : d0;
-//     focus.attr("transform", "translate(" + x(d.date) + "," + y(d.close) + ")");
-//     focus.select("text").text(d);
-//   }
 </script>
+</body>
