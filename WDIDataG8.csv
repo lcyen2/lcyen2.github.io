@@ -1,4 +1,4 @@
-country,year,ip,fb,mb
+symbol,date,price,fb,mb
 CAN,Jan 2008,76.7,29.46,66.14
 CAN,Jan 2009,80.3,30.45,70.47
 CAN,Jan 2010,80.3,31.66,75.58
