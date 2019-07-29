@@ -66,7 +66,7 @@
 	<script>
 	
     var margin = {top: 80, right: 200, bottom: 40, left: 80}
-    var width = 1300 - margin.left - margin.right
+    var width = 1400 - margin.left - margin.right
     var height = 500 - margin.top - margin.bottom
 
     var parseYear = d3.timeParse("%Y-%m")
@@ -75,26 +75,26 @@
 	var glines
 	var tooltip
 
-    var code = ["Argentina (ARG)",
-				"Australia (AUS)",
-				"Brazil (BRA)",
-				"Canada (CAN)",
-				"China (CHN)",
-				"European Union (EUU)",
-				"France (FRA)",
-				"Germany (DEU)",
-				"India (IND)",
-				"Indonesia (IDN)",
-				"Italy (ITA)",
-				"Japan (JPN)",
-				"Mexico (MEX)",
-				"Russia (RUS)",
-				"Saudi Arabia (SAU)",
-				"South Africa (ZAF)",
-				"South Korea (KOR)",
-				"Turkey (TUR)",
-				"United Kingdom (GBR)",
-				"United States (USA)"]
+    var code = ["ARG: Argentina",
+				"AUS: Australia",
+				"BRA: Brazil",
+				"CAN: Canada",
+				"CHN: China",
+				"EUU: European Union",
+				"FRA: France",
+				"DEU: Germany",
+				"IND: India",
+				"IND: Indonesia",
+				"ITA: Italy",
+				"JPN: Japan",
+				"KOR: South Korea",
+				"MEX: Mexico",
+				"RUS: Russia",
+				"SAU: Saudi Arabia",
+				"ZAF: South Africa",
+				"TUR: Turkey",
+				"GBR: United Kingdom",
+				"USA: United States"]
     
 	var color = d3.scaleOrdinal()
 				.domain(code)
@@ -159,10 +159,10 @@
 				.attr("x", 40)
 				.attr("y", -20)
 				.attr("fill", bgcolor)
-				.text("Utilization (%)")
+				.text("Adoptation (%)")
 
-		var legend = svg.append('g')
-							.attr("transform", "translate(" + (width + 40) + "," + 0 + ")")
+		var legend = svg.append("g")
+							.attr("transform", "translate(" + (width + 60) + "," + 0 + ")")
 						.selectAll(".legend").data(code).enter().append("g")
 							.attr("transform", function(d,i) { return "translate(0," + i * 20 + ")" })
 
@@ -309,7 +309,7 @@
 
 			sortG8.sort(function(x,y) { return d3.descending(x.wdi,y.wdi); })
 
-			var sorted = sortG8.map(d=> d.key)
+			var sorted = sortG8.map(d => d.key)
 
 			var nested = nestG8.slice().sort(function(a,b) {
 				return sorted.indexOf(a.key) - sorted.indexOf(b.key)
