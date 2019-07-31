@@ -31,9 +31,9 @@
 		<div class='row'>
 			<div id='chart'>
 				<div class='title'>
-					<p><h3>Telecommunications Indices during the 4G Era (2008-2017)</h3>
-						   Year-over-Year Trends and Head-to-Head Comparisons among the Group of Twenty (G-20) Countries</p>
-					<hr>
+					<p><h4>More Residents from Countries with Strong Economy are accessing Internet throughout the 4G Era</h4>
+						   Year-over-Year Trends and Head-to-Head Comparisons of various Telecom Indices
+						   among the Group of Twenty (G-20) Countries from 2008 to 2017</p><hr>					
 					<p><div class='form-check-inline'>
 						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 						Q1: How many people have access to the Internet?&nbsp;&nbsp;&nbsp;&nbsp;
@@ -57,7 +57,7 @@
 						<label class='form-check-label'>
 							<input type='radio' name='kpi' value='4'>Mobile Cellular (Smartphone/Tablet)
 						</label>
-					</div>
+					</div><hr>
 				</div>
 			</div>
 		</div>
@@ -65,16 +65,33 @@
 		
 	<script>
 	
-    var margin = {top: 80, right: 200, bottom: 40, left: 80}
-    var width = 1400 - margin.left - margin.right
-    var height = 500 - margin.top - margin.bottom
-
+    var margin = {top: 40, right: 200, bottom: 40, left: 80}
+    var width = 1300 - margin.left - margin.right
+    var height = 500- margin.top - margin.bottom
+	var g20
     var parseYear = d3.timeParse("%Y-%m")
-
-    var mice
-	var glines
+	var xScale
+	var yScale
+	var xAxis
+	var yAxis
+	var svg
+	var legend
+	var mice
+	var mouse
+	var mouseLine
+	var line
+	var lines
+	var series
+	var newG20
+	var nestG20
 	var tooltip
-
+	var sorted
+	var nested
+	var dateTime
+	var bisect
+	var index
+	var data
+	
     var code = ["ARG: Argentina",
 				"AUS: Australia",
 				"BRA: Brazil",
@@ -104,29 +121,30 @@
 						"#AAFFC3", "#808000", "#FFD8B1", "#000075", "#808080"])
 
 	var bgcolor = "#A9A9A9"
+	var ttcolor = "#F3F3F3"
 		
     d3.csv("https://lcyen2.github.io/WDIDataG20.csv", data => {
 
-        var g8 = data.map((d,i) => {
-					return {
-						year: parseYear(d.time),
-						country: d.country,
-						kpi: +d.kpi,
-						wdi: +d.wdi	}
-					})
+        g20 = data.map((d,i) => {
+				return {
+					year: parseYear(d.time),
+					country: d.country,
+					kpi: +d.kpi,
+					wdi: +d.wdi	}
+				})
 
-        var xScale = d3.scaleTime().domain(d3.extent(g8, d=>d.year)).range([0, width])
-		var yScale = d3.scaleLinear().domain([0, d3.max(g8, d=>d.wdi)]).range([height, 0]);
+        xScale = d3.scaleTime().domain(d3.extent(g20, d=>d.year)).range([0, width])
+		yScale = d3.scaleLinear().domain([0, d3.max(g20, d=>d.wdi)]).range([height, 0]);
 
-        var svg = d3.select("#chart")
-					.append("svg")
-						.attr("width", width + margin.left + margin.right)
-						.attr("height", height + margin.top + margin.bottom)
-					.append("g")
-						.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-        var xAxis = d3.axisBottom(xScale).ticks(d3.timeYear)
-        var yAxis = d3.axisLeft(yScale).ticks(10,"s").tickSize(-width)
+		xAxis = d3.axisBottom(xScale).ticks(d3.timeYear)
+        yAxis = d3.axisLeft(yScale).ticks(10,"s").tickSize(-width)
+		
+        svg = d3.select("#chart")
+				.append("svg")
+					.attr("width", width + margin.left + margin.right)
+					.attr("height", height + margin.top + margin.bottom)
+				.append("g")
+					.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         svg.append("g")
 			.attr("transform", `translate(0, ${height})`)
@@ -156,15 +174,16 @@
 					.remove()
 				})
 			.append("text")
-				.attr("x", 40)
-				.attr("y", -20)
+				.attr("x", 45)
+				.attr("y", -10)
 				.attr("fill", bgcolor)
+				.style("font-size", 12)
 				.text("Utilization (%)")
 
-		var legend = svg.append("g")
-							.attr("transform", "translate(" + (width + 60) + "," + 0 + ")")
-						.selectAll(".legend").data(code).enter().append("g")
-							.attr("transform", function(d,i) { return "translate(0," + i * 20 + ")" })
+		legend = svg.append("g")
+						.attr("transform", "translate(" + (width + 60) + "," + 0 + ")")
+					.selectAll(".legend").data(code).enter().append("g")
+						.attr("transform", function(d,i) { return "translate(0," + i * 20 + ")" })
 
         legend.append("circle")
             .attr("cx", 0)
@@ -177,51 +196,32 @@
             .attr("y", 5)
             .style("fill", bgcolor)
             .style("font-size", 12)
-            .text(d=>d)
+            .text(d=>d)   
 
-        var line = d3.line()
-					.x(d => xScale(d.year))
-					.y(d => yScale(d.wdi))
-
+		line = d3.line()
+			.x(d => xScale(d.year))
+			.y(d => yScale(d.wdi))
+			
         createChart(1)
 
         d3.selectAll(("input[name='kpi']")).on("change", function() { updateChart(this.value) })
 
-        function updateChart(kpi) {
-
-			var newG8 = g8.filter(d => d.kpi == parseInt(kpi))
-			var nestG8 = d3.nest()
-				.key(d => d.country)
-				.entries(newG8)
-
-			glines.select(".line") //select line path within line-group (which represents a vehicle category), then bind new data 
-				.data(nestG8)
-				.transition().duration(1000)
-				.attr("d", function(d) { return line(d.values) })
-
-			mice.selectAll(".mouse-per-line")
-				.data(nestG8)
-
-			mice.on("mousemove", function() { 
-				var mouse = d3.mouse(this)
-				updateTooltip(mouse, nestG8)
-				})
-			}
 
         function createChart(kpi) {
 
-			var newG8 = g8.filter(d => d.kpi == parseInt(kpi))
-			var nestG8 = d3.nest()
-				.key(d => d.country)
-				.entries(newG8)
-
-			var lines = svg.append("g")
+			newG20 = g20.filter(d => d.kpi == parseInt(kpi))
 			
-			glines = lines.selectAll(".line-group")
-				.data(nestG8).enter().append("g")
+			nestG20 = d3.nest()
+				.key(d => d.country)
+				.entries(newG20)
+
+			lines = svg.append("g")
+			
+			series = lines.selectAll(".line-group")
+				.data(nestG20).enter().append("g")
 				.attr("class", "line-group")
 
-			glines.append("path")
+			series.append("path")
 				.attr("class", "line")  
 				.attr("d", d => line(d.values))
 				.style("stroke", (d,i) => color(i))
@@ -232,7 +232,7 @@
 			tooltip = d3.select("#chart").append("div")
 				.attr("id", "tooltip")
 				.style("position", "absolute")
-				.style("background-color", "#F3F3F3")
+				.style("background-color", ttcolor)
 				.style("display", "none")
 				.style("padding", 6)
 
@@ -245,18 +245,18 @@
 				.style("stroke", bgcolor)
 				.style("opacity", 0);
 
-			var lines = document.getElementsByClassName("line");
+			lines = document.getElementsByClassName("line");
 
-			var mousePerLine = mice.selectAll('.mouse-per-line')
-				.data(nestG8).enter().append("g")
+			mouseLine = mice.selectAll('.mouse-per-line')
+				.data(nestG20).enter().append("g")
 				.attr("class", "mouse-per-line");
-
-			mousePerLine.append("circle")
+			
+			mouseLine.append("circle")
 				.attr("r", 4)
 				.style("stroke", function(d) { return color(d.key) })
 				.style("stroke-width", "2px")
 				.style("fill", "none")
-				.style("opacity", "0");
+				.style("opacity", 0);
 
 			mice.append("svg:rect")
 				.attr("width", width) 
@@ -275,59 +275,80 @@
 					d3.selectAll("#tooltip").style("display", "block")
 					})
 				.on("mousemove", function() { 
-					var mouse = d3.mouse(this)
+					mouse = d3.mouse(this)
 					d3.selectAll(".mouse-per-line")
 						.attr("transform", function(d,i) {
-							var xDate = xScale.invert(mouse[0])  // use 'invert' to get year corresponding to distance from mouse position relative to svg
-							var bisect = d3.bisector(function(d) { return d.year; }).left  // retrieve row index of year on parsed csv
-							var idx = bisect(d.values, xDate);
+							dateTime = xScale.invert(mouse[0])
+							bisect = d3.bisector(function(d) { return d.year; }).right
+							index = bisect(d.values, dateTime) - 1;
 							d3.select(".mouse-line")
 								.attr("d", function() {
-									var data = "M" + xScale(d.values[idx].year) + "," + (height);
-										data += " " + xScale(d.values[idx].year) + "," + 0;
-									return data;
+									return "M" + xScale(d.values[index].year) + "," + (height) +
+										   " " + xScale(d.values[index].year) + "," + 0;
 									});
-							return "translate(" + xScale(d.values[idx].year) + "," + yScale(d.values[idx].wdi) + ")";
+							return "translate(" + xScale(d.values[index].year) + "," + yScale(d.values[index].wdi) + ")";
 							});
-					updateTooltip(mouse, nestG8)
+					updateTooltip(mouse, nestG20)
 					})
 			}
 
-		function updateTooltip(mouse, nestG8) {
-		
-			sortG8 = []
+        function updateChart(kpi) {
+
+			newG20 = g20.filter(d => d.kpi == parseInt(kpi))
 			
-			nestG8.map(d => {
-				var xDate = xScale.invert(mouse[0])
-				var bisect = d3.bisector(function(d) { return d.year; }).left
-				var idx = bisect(d.values, xDate)
-				sortG8.push({key: d.values[idx].country,
-							wdi: d.values[idx].wdi,
-							kpi: d.values[idx].kpi, 
-							year: d.values[idx].year.getFullYear()})
+			nestG20 = d3.nest()
+				.key(d => d.country)
+				.entries(newG20)
+
+			series.select(".line")
+				.data(nestG20)
+				.transition().duration(1000)
+				.attr("d", function(d) { return line(d.values) })
+
+			mice.selectAll(".mouse-per-line")
+				.data(nestG20)
+
+			mice.on("mousemove", function() { 
+				mouse = d3.mouse(this)
+				updateTooltip(mouse, nestG20)
+				})
+			}
+
+		function updateTooltip(mouse, nestG20) {
+		
+			sortG20 = []
+			
+			nestG20.map(d => {
+				dateTime = xScale.invert(mouse[0])
+				bisect = d3.bisector(function(d) { return d.year; }).right
+				index = bisect(d.values, dateTime) - 1
+				sortG20.push({key: d.values[index].country,
+							wdi: d.values[index].wdi,
+							kpi: d.values[index].kpi, 
+							year: d.values[index].year.getFullYear()})
 				})
 
-			sortG8.sort(function(x,y) { return d3.descending(x.wdi,y.wdi); })
+			sortG20.sort(function(x,y) { return d3.descending(x.wdi,y.wdi); })
 
-			var sorted = sortG8.map(d => d.key)
+			sorted = sortG20.map(d => d.key)
 
-			var nested = nestG8.slice().sort(function(a,b) {
+			nested = nestG20.slice().sort(function(a,b) {
 				return sorted.indexOf(a.key) - sorted.indexOf(b.key)
 				})
 			
-			tooltip.html("YEAR " + sortG8[0].year)
+			tooltip.html(sortG20[0].year + " Ranking")
 					.style("display", "block")
-					.style("left", d3.event.pageX + 20)
-					.style("top", d3.event.pageY - 20)
+					.style("left", d3.event.pageX + 10)
+					.style("top", d3.event.pageY - 10)
 					.style("font-size", 12)
 				.selectAll().data(nested).enter().append("div")
 					.style("color", d => { return color(d.key) })
 					.style("font-size", 10)
 				.html(d => {
-					var xDate = xScale.invert(mouse[0])
-					var bisect = d3.bisector(function(d) { return d.year; }).left
-					var idx = bisect(d.values, xDate)
-					return d.key + ": " + d.values[idx].wdi.toString() + " %"
+					dateTime = xScale.invert(mouse[0])
+					bisect = d3.bisector(function(d) { return d.year; }).right
+					index = bisect(d.values, dateTime) - 1
+					return d.key + ": " + d.values[index].wdi.toString() + " %"
 					})
 			}
     })
