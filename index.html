@@ -25,6 +25,7 @@
 		}
 		
 		.footer {
+			margin-top: 10px;
 			margin-left: 60px;
 			text-align: left;
 			font-size: 0.8em;
@@ -75,7 +76,7 @@
 		
 	<script>
 	
-    var margin = {top: 40, right: 120, bottom: 40, left: 80}
+    var margin = {top: 40, right: 200, bottom: 40, left: 80}
     var width = 1300 - margin.left - margin.right
     var height = 450- margin.top - margin.bottom
 	var g20
@@ -194,7 +195,7 @@
 				.text("Utilization (%)")
 
 		legend = svg.append("g")
-						.attr("transform", "translate(" + (width + 60) + "," + 0 + ")")
+						.attr("transform", "translate(" + (width + 50) + "," + 0 + ")")
 					.selectAll(".legend").data(code).enter().append("g")
 						.attr("transform", function(d,i) { return "translate(0," + i * 20 + ")" })
 
