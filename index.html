@@ -21,7 +21,6 @@
 		}
 		
 		.form-check-inline {
-			font-size: 0.8em;
 			color: #0006A6;
 		}
 		
@@ -30,7 +29,7 @@
 			text-align: left;
 			font-size: 0.8em;
 			color: #800000;
-			opacity: 0.75
+			opacity: 0.8
 		}
 	</style>
 </head>
@@ -52,7 +51,7 @@
 					</div></p>
 					<div class='form-check-inline'>
 						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-						Q2: What do people use for communications?&nbsp;&nbsp;&nbsp;&nbsp;
+						Q2: What do people use to access the Internet?&nbsp;&nbsp;&nbsp;&nbsp;
 						<label class='form-check-label'>
 							<input type='radio' name='kpi' value='2'>Fixed Broadband (Fiber/Cable)
 						</label>
@@ -70,8 +69,8 @@
 				</div>
 			</div>
 		</div>
-		<div class='footer'>[TIP] Navigate your cursor over the data line series
-							to uncover additional information for each year.</div>
+		<div class='footer'>[TIP] Navigate your cursor over the data line series on the graph
+								  to uncover additional information for each year.</div>
 	</div>
 		
 	<script>
@@ -162,7 +161,7 @@
 			.call(xAxis)
 			.call(g => {
 				g.selectAll("text")
-					.style("font-size", 12)
+					.style("font-size", 14)
 					.attr("y", 15)
 					.attr("fill", bgcolor)
 				g.selectAll("line")
@@ -176,7 +175,7 @@
 			.call(g => {
 				g.selectAll("text")
 					.style("text-anchor", "middle")
-					.style("font-size", 12)
+					.style("font-size", 14)
 					.attr("x", -20)
 					.attr("fill", bgcolor)
 				g.selectAll("line")
@@ -188,10 +187,10 @@
 					.remove()
 				})
 			.append("text")
-				.attr("x", 45)
+				.attr("x", 55)
 				.attr("y", -10)
 				.attr("fill", bgcolor)
-				.style("font-size", 12)
+				.style("font-size", 14)
 				.text("Utilization (%)")
 
 		legend = svg.append("g")
@@ -206,10 +205,10 @@
             .style("fill", d=>color(d))
 
         legend.append("text")
-            .attr("x", 12)
+            .attr("x", 15)
             .attr("y", 5)
             .style("fill", bgcolor)
-            .style("font-size", 12)
+            .style("font-size", 14)
             .text(d=>d)   
 
 		line = d3.line()
@@ -354,10 +353,10 @@
 					.style("display", "block")
 					.style("left", d3.event.pageX + 10)
 					.style("top", d3.event.pageY - 10)
-					.style("font-size", 12)
+					.style("font-size", 14)
 				.selectAll().data(nested).enter().append("div")
 					.style("color", d => { return color(d.key) })
-					.style("font-size", 10)
+					.style("font-size", 12)
 				.html(d => {
 					dateTime = xScale.invert(mouse[0])
 					bisect = d3.bisector(function(d) { return d.year; }).right
