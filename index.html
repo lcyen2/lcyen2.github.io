@@ -24,6 +24,14 @@
 			font-size: 0.8em;
 			color: #0006A6;
 		}
+		
+		.footer {
+			margin-left: 60px;
+			text-align: left;
+			font-size: 0.8em;
+			color: #800000;
+			opacity: 0.75
+		}
 	</style>
 </head>
   
@@ -62,13 +70,15 @@
 				</div>
 			</div>
 		</div>
+		<div class='footer'>[TIP] Navigate your cursor over the data line series
+							to uncover additional information for each year.</div>
 	</div>
 		
 	<script>
 	
     var margin = {top: 40, right: 200, bottom: 40, left: 80}
-    var width = 1300 - margin.left - margin.right
-    var height = 500- margin.top - margin.bottom
+    var width = 1350 - margin.left - margin.right
+    var height = 450- margin.top - margin.bottom
 	var g20
     var parseYear = d3.timeParse("%Y-%m")
 	var xScale
@@ -152,6 +162,8 @@
 			.call(xAxis)
 			.call(g => {
 				g.selectAll("text")
+					.style("font-size", 12)
+					.attr("y", 15)
 					.attr("fill", bgcolor)
 				g.selectAll("line")
 					.attr("stroke", bgcolor)
@@ -164,6 +176,7 @@
 			.call(g => {
 				g.selectAll("text")
 					.style("text-anchor", "middle")
+					.style("font-size", 12)
 					.attr("x", -20)
 					.attr("fill", bgcolor)
 				g.selectAll("line")
